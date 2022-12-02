@@ -9,14 +9,17 @@
         $user = $link->query("SELECT user_id FROM user WHERE email='$emailFromToken'")->fetch_assoc();
         $userID = $user['user_id'];
         $checkToken = $link->query("SELECT token_id FROM token WHERE token='$token'")->fetch_assoc();
-        if (!$checkToken) {
+        if ($checkToken) {
             setHTTPStatus('401','Token not specified or not valid');
             return;
         }
         switch ($method) {
             case "GET":
-
-                $basketList = $link->query(-"SELECT dish.dish_id, name, price, amount, image FROM dish 
+                if (count($urlList) != 2) {
+                    setHTTPStatus('403',"Method '$method' not allowed");
+                    break;
+                }
+                $basketList = $link->query("SELECT dish.dish_id, name, price, amount, image FROM dish 
                                                     JOIN dish_basket ON dish_basket.dish_id = dish.dish_id 
                                                     JOIN user ON user.user_id = '$userID'");
                 $result = [];
@@ -33,22 +36,36 @@
                 echo json_encode($result);
             break;
             case "POST":
-
-                //$checkDishInBasket = $link->query("SELECT amount FROM dish_basket WHERE user_id='$userID' AND dish_id='$urlList[3]'");
-                $updateDishInBasket = $link->query("UPDATE dish_basket SET amount+=1 WHERE user_id='$userID' AND dish_id='$urlList[3]'");
-                if (!$updateDishInBasket) {
+                if (count($urlList) != 4 || $urlList[2] != 'dish') {
+                    setHTTPStatus('403',"Method '$method' not allowed");
+                    break;
+                }
+                $checkDish = $link->query("SELECT dish_id FROM dish WHERE dish_id='$urlList[3]'")->fetch_assoc();
+                if (!$checkDish) {
+                    setHTTPStatus('404', "Dish with id = '$urlList[3]' not found");
+                }
+                $checkDishInBasket = $link->query("SELECT amount FROM dish_basket WHERE user_id='$userID' AND dish_id='$urlList[3]'")->fetch_assoc();
+                if ($checkDishInBasket) {
+                    $updateDishInBasket = $link->query("UPDATE dish_basket SET amount=amount+1 WHERE user_id='$userID' AND dish_id='$urlList[3]'");
+                } else {
                     $addDish = $link->query("INSERT INTO dish_basket(user_id, dish_id, amount)
                                                                 VALUES('$userID', '$urlList[3]', 1)");
-                    if (!$addDish) {
-                        echo "post error" . $link->error;
-                    }
                 }
             break;
             case "DELETE":
-
-                $deleteDishFromBasket = $link->query("DELETE FROM dish_basket WHERE user_id='$userID' AND dish_id='$urlList[3]'");
-                if (!$deleteDishFromBasket) {
-                    echo "delete dish from basket error" . $link->error;
+                if (count($urlList) != 4 || $urlList[2] != 'dish' || !$_GET['increase']) {
+                    setHTTPStatus('403',"Method '$method' not allowed");
+                    break;
+                }
+                $checkDish = $link->query("SELECT dish_id FROM dish WHERE dish_id='$urlList[3]'")->fetch_assoc();
+                if (!$checkDish) {
+                    setHTTPStatus('404', "Dish with id = '$urlList[3]' not found");
+                }
+                $increaseBoolVal = filter_var($_GET['increase'], FILTER_VALIDATE_BOOLEAN);
+                if ($increaseBoolVal) {
+                    $decreaseDishInBasket = $link->query("UPDATE dish_basket SET amount=amount-1 WHERE user_id='$userID' AND dish_id='$urlList[3]'");
+                } else {
+                    $deleteDishFromBasket = $link->query("DELETE FROM dish_basket WHERE user_id='$userID' AND dish_id='$urlList[3]'");
                 }
             break;
         }
