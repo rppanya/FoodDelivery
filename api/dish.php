@@ -9,10 +9,50 @@
                 $url = substr($url, 1);
                 $url = str_replace("categories", "categories[]", $url);
                 parse_str($url, $get);
-                echo json_encode($get);
-                break;
 
-                //TODO оставила запрос /api/dish
+                $pageInfo = array('size' => 6);
+                $pageNumber = $get['page'];
+                if (!$pageNumber) {
+                    $pageNumber = 1;
+                } else if ($pageNumber <= 0) {
+                    setHTTPStatus('404', "Page '$pageNumber' does not exist");
+                    return;
+                }
+                $numberOfRecords = $pageInfo['size'];
+                $from = $pageInfo['size']*($pageInfo['currentPage'] - 1);
+
+                $categoriesList = [];
+                if ($get['categories'] == '') {
+                    $categoriesList = ['Wok', 'Pizza', 'Soup', 'Dessert', 'Drink'];
+                } else {
+                    foreach ($get['categories'] as $category) {
+                        $categoriesList[] = $category;
+                    }
+                }
+                $categories = '\'' . implode('\', \'', $categoriesList) . '\'';
+
+                if ($get['vegetarian'] == '') {
+                    $vegetarian = '1, 0';
+                } else {
+                    $vegetarian = boolval($get['vegetarian']);
+                }
+
+                $sorting = ltrim(preg_replace( '/[A-Z]/', ' $0', $get['sorting']));
+                $sorting = mb_strtolower($sorting);
+                $sorting = ltrim(preg_replace('/asc/', 'ASC', $sorting));
+                $sorting = ltrim(preg_replace('/desc/', 'DESC', $sorting));
+
+                $listDishes = $link->query("SELECT * FROM dish WHERE (category IN ($categories) AND vegetarian IN ($vegetarian)) ORDER BY $sorting");
+
+                foreach ($listDishes as $dish) {
+                    $result['dishes'][] = $dish;
+                }
+                $countPages = $link->query("SELECT COUNT(*) AS countPages FROM dish WHERE (category IN ($categories) AND vegetarian IN ($vegetarian)) ORDER BY $sorting")->fetch_assoc();
+                $pageInfo['count'] = intval($countPages['countPages']);
+                $pageInfo['current'] = $pageNumber;
+                $result['pagination'] = $pageInfo;
+                echo json_encode($result);
+                break;
 
             case 3:
                 if ($method != "GET") {
