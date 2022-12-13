@@ -5,16 +5,16 @@
 
     function route($method, $urlList, $requestData) {
         global $link;
-        $userID = checkAuthorize();
-        if (!$userID) {
-            setHTTPStatus('401','Token not specified or not valid');
-            return;
-        }
         switch ($method) {
             case "GET":
                 if (count($urlList) != 2) {
-                    setHTTPStatus('405',"Method '$method' not allowed");
-                    break;
+                    setHTTPStatus('404', 'Missing resource is requested');
+                    return;
+                }
+                $userID = checkAuthorize();
+                if (!$userID) {
+                    setHTTPStatus('401','Token not specified or not valid');
+                    return;
                 }
                 $basketList = $link->query("SELECT dish.dish_id, name, price, amount, image FROM dish 
                                                     JOIN dish_basket ON dish_basket.dish_id = dish.dish_id AND dish_basket.order_id is null
@@ -34,8 +34,13 @@
             break;
             case "POST":
                 if (count($urlList) != 4 || $urlList[2] != 'dish') {
-                    setHTTPStatus('405',"Method '$method' not allowed");
-                    break;
+                    setHTTPStatus('404','Missing resource is requested');
+                    return;
+                }
+                $userID = checkAuthorize();
+                if (!$userID) {
+                    setHTTPStatus('401','Token not specified or not valid');
+                    return;
                 }
                 $checkDish = $link->query("SELECT dish_id FROM dish WHERE dish_id='$urlList[3]'")->fetch_assoc();
                 if (!$checkDish) {
@@ -51,22 +56,27 @@
             break;
             case "DELETE":
                 if (count($urlList) != 4 || $urlList[2] != 'dish') {
-                    setHTTPStatus('405',"Method '$method' not allowed");
-                    break;
+                    setHTTPStatus('404','Missing resource is requested');
+                    return;
+                }
+                $userID = checkAuthorize();
+                if (!$userID) {
+                    setHTTPStatus('401','Token not specified or not valid');
+                    return;
                 }
                 if (!$_GET['increase']) {
                     setHTTPStatus('400',"Value 'Increase' not specified");
-                    break;
+                    return;
                 }
                 $checkDish = $link->query("SELECT dish_id FROM dish WHERE dish_id='$urlList[3]'")->fetch_assoc();
                 if (!$checkDish) {
                     setHTTPStatus('404', "Dish with id = '$urlList[3]' not found");
-                    break;
+                    return;
                 }
                 $checkDishInBasket = $link->query("SELECT amount FROM dish_basket WHERE dish_id='$urlList[3]' AND order_id is null")->fetch_assoc();
                 if (!$checkDishInBasket) {
                     setHTTPStatus('404', "Dish with id = '$urlList[3]' not found in a basket");
-                    break;
+                    return;
                 }
                 $increaseBoolVal = filter_var($_GET['increase'], FILTER_VALIDATE_BOOLEAN);
                 if ($increaseBoolVal && $checkDishInBasket['amount']-1 > 0) {
@@ -75,6 +85,8 @@
                     $deleteDishFromBasket = $link->query("DELETE FROM dish_basket WHERE user_id='$userID' AND dish_id='$urlList[3]' AND order_id is null");
                 }
             break;
+            default:
+                setHTTPStatus('405', "Method '$method' not allowed");
+                break;
         }
-
     }
