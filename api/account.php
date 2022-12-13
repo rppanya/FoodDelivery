@@ -26,7 +26,6 @@
                             $userInsertResult = $link->query("INSERT INTO user(user_id,  full_name, birth_date, gender, telephone_number, email, address, password)
                                                                 VALUES(UUID(), '$fullName', '$birthDate', '$gender', '$phoneNumber', '$email', '$address', '$password')");
                             if (!$userInsertResult) {
-                                //echo $link->error;
                                 if (checkEmailDuplicates($email) || checkBirthdate($birthDate)) {
                                     return;
                                 }
@@ -47,17 +46,18 @@
                             }
                             break;
                         case "logout":
+                            $userID = checkAuthorize();
+                            if (!$userID) {
+                                setHTTPStatus('401','Token not specified or not valid');
+                                return;
+                            }
                             $token = substr(getallheaders()['Authorization'], 7);
-                            $emailFromToken = getPayload($token)['email'];
-                            $user = $link->query("SELECT user_id FROM user WHERE email='$emailFromToken'")->fetch_assoc();
-                            $userID = $user['user_id'];
                             $checkToken = $link->query("SELECT token_id FROM token WHERE token='$token'")->fetch_assoc();
                             if ($checkToken) {
                                 setHTTPStatus('409', "From this '$token' token has already logged out");
                                 return;
                             }
                             $tokenInsertResult = $link->query("INSERT INTO token(token_id, user_id, token) VALUES(UUID(),'$userID', '$token')");
-                            echo $link->error;
                             if ($tokenInsertResult) {
                                 $messageResult = array('token' => $token, 'message' => 'Logged Out');
                                 setHTTPStatus('200', $messageResult);
@@ -65,67 +65,59 @@
                             break;
                         default:
                             setHTTPStatus('404', 'Missing resource is requested');
+                            break;
                     }
                     break;
                 case "GET":
-                    if ($urlList[2] == "register" || $urlList[2] == "login" || $urlList[2] == "logout") {
-                        setHTTPStatus('405', "Method '$method' not allowed");
+                    if ($urlList[2] != "profile") {
+                        setHTTPStatus('404', 'Missing resource is requested');
                         break;
                     }
-                    if ($urlList[2] == "profile") {
-                        $token = substr(getallheaders()['Authorization'], 7);
-                        $isLogoutToken = $link->query("SELECT token_id FROM token WHERE token.`token`='$token'")->fetch_assoc();
-                        if (isValid($token) && !isExpired($token) && $isLogoutToken == null) {
-                            $emailFromToken = getPayload($token)['email'];
-                            $user = $link->query("SELECT * FROM user WHERE email='$emailFromToken'")->fetch_assoc();
-                            $result = array(
-                                'id' => $user['user_id'],
-                                'fullName' => $user['full_name'],
-                                'birthDate' => $user['birth_date'],
-                                'gender' => $user['gender'],
-                                'address' => $user['address'],
-                                'email' => $user['email'],
-                                'phoneNumber' => $user['telephone_number']
-                            );
-                            echo json_encode($result);
-                        }
-                        else {
-                            setHTTPStatus('401', 'Token not specified or not valid');
-                        }
+                    $token = substr(getallheaders()['Authorization'], 7);
+                    $isLogoutToken = $link->query("SELECT token_id FROM token WHERE token.`token`='$token'")->fetch_assoc();
+                    $userID = checkAuthorize();
+                    if (!$userID || $isLogoutToken) {
+                        setHTTPStatus('401','Token not specified or not valid');
+                        return;
                     }
-                    else {
-                        setHTTPStatus('404', 'Missing resource is requested');
-                    }
+                    $user = $link->query("SELECT * FROM user WHERE user_id='$userID'")->fetch_assoc();
+                    $result = array(
+                        'id' => $user['user_id'],
+                        'fullName' => $user['full_name'],
+                        'birthDate' => $user['birth_date'],
+                        'gender' => $user['gender'],
+                        'address' => $user['address'],
+                        'email' => $user['email'],
+                        'phoneNumber' => $user['telephone_number']
+                    );
+                    echo json_encode($result);
+
                     break;
                 case "PUT":
-                    if ($urlList[2] == "register" || $urlList[2] == "login" || $urlList[2] == "logout") {
-                        setHTTPStatus('405', "Method '$method' not allowed");
+                    if ($urlList[2] != "profile") {
+                        setHTTPStatus('404', 'Missing resource is requested');
                         break;
                     }
-                    if ($urlList[2] == "profile") {
-                        $token = substr(getallheaders()['Authorization'], 7);
-                        $isLogoutToken = $link->query("SELECT token_id FROM token WHERE token.`token`='$token'")->fetch_assoc();
-                        if (isValid($token) && !isExpired($token) && $isLogoutToken == null) {
-                            $emailFromToken = getPayload($token)['email'];
-                            $user = $link->query("SELECT user_id FROM user WHERE email='$emailFromToken'")->fetch_assoc();
-                            $userID = $user['user_id'];
-                            $fullName = $requestData->body->fullName;
-                            $birthDate = str_replace(["T", "Z"], " ", trim($requestData->body->birthDate));
-                            $gender = $requestData->body->gender;
-                            $address = $requestData->body->address;
-                            $phoneNumber = $requestData->body->phoneNumber;
-                            if (!isValidChangeProfile($fullName, $gender, $phoneNumber)) {
-                                return;
-                            }
-                            $userUpdateResult = $link->query("UPDATE user SET full_name='$fullName', birth_date='$birthDate', gender='$gender', address='$address' WHERE user_id='$userID'");
-                            if (!$userUpdateResult) {
-                                if (checkEmailDuplicates($emailFromToken) || checkBirthdate($birthDate)) {
-                                    return;
-                                }
-                            }
-                        }
-                        else {
-                            setHTTPStatus('401', 'Token not specified or not valid');
+                    $token = substr(getallheaders()['Authorization'], 7);
+                    $emailFromToken = getPayload($token)['email'];
+                    $isLogoutToken = $link->query("SELECT token_id FROM token WHERE token.`token`='$token'")->fetch_assoc();
+                    $userID = checkAuthorize();
+                    if (!$userID || $isLogoutToken) {
+                        setHTTPStatus('401','Token not specified or not valid');
+                        return;
+                    }
+                    $fullName = $requestData->body->fullName;
+                    $birthDate = str_replace(["T", "Z"], " ", trim($requestData->body->birthDate));
+                    $gender = $requestData->body->gender;
+                    $address = $requestData->body->address;
+                    $phoneNumber = $requestData->body->phoneNumber;
+                    if (!isValidChangeProfile($fullName, $gender, $phoneNumber)) {
+                        return;
+                    }
+                    $userUpdateResult = $link->query("UPDATE user SET full_name='$fullName', birth_date='$birthDate', gender='$gender', address='$address' WHERE user_id='$userID'");
+                    if (!$userUpdateResult) {
+                        if (checkEmailDuplicates($emailFromToken) || checkBirthdate($birthDate)) {
+                            return;
                         }
                     }
                     break;
