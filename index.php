@@ -4,11 +4,15 @@
     require_once "modules/connection_database.php";
     require_once "modules/get_functions.php";
     require_once "modules/headers.php";
+    require_once "modules/populateDatabase.php";
+
 
     header("Content-type: application/json");
     header("Access-Control-Allow-Origin: *");
     header("Access-Control-Allow-Methods: *");
     header("Access-Control-Allow-Headers: *");
+
+    date_default_timezone_set('Asia/Tomsk');
 
     $url = $_GET['q'] ?? '';
     $url = rtrim($url, '/');

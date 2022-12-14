@@ -7,7 +7,7 @@
         );
         if ($link->error == "Duplicate entry '" . $email . "' for key 'email'") {
             $messageResult['error'] = "Email '" . $email . "' is already taken";
-            setHTTPStatus('409', $messageResult);
+            setHTTPStatus('400', $messageResult);
             return true;
         }
         return false;
