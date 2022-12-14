@@ -1,10 +1,10 @@
 <?php
     global $link;
 
-    require_once "modules/connection_database.php";
-    require_once "modules/get_functions.php";
-    require_once "modules/headers.php";
-    require_once "modules/populateDatabase.php";
+    require_once "helpers/connection_database.php";
+    require_once "helpers/get_functions.php";
+    require_once "helpers/headers.php";
+    require_once "helpers/populateDatabase.php";
 
 
     header("Content-type: application/json");

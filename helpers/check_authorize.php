@@ -1,8 +1,9 @@
 <?php
 
-    require_once "modules/jwt.php";
+require_once "helpers/jwt.php";
 
-function checkAuthorize() {
+function checkAuthorize()
+{
     global $link;
     $token = substr(getallheaders()['Authorization'], 7);
     if (!isValid($token) || isExpired($token)) {
