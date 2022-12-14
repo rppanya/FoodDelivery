@@ -1,5 +1,5 @@
 <?php
-    function isValidRegistration($fullName, $password, $email, $gender, $phoneNumber): bool
+    function isValidRegistration($fullName, $password, $email, $gender, $phoneNumber, $birthDate): bool
     {
 
         $validationErrors = [];
@@ -36,7 +36,12 @@
         if(!ctype_digit($phoneNumber)) {
             $validationErrors[] = ["PhoneNumber" => "The PhoneNumber field is not a valid phone number"];
         }
-
+        $minAge = 3600*24*365*10; //10 years
+        if (!checkDateTime($birthDate)) {
+            $validationErrors[] = ["BirthDate" => "Invalid birthDate value"];
+        } else if (time() - checkDateTime($birthDate) < $minAge ) {
+            $validationErrors[] = ["BirthDate" => "Invalid birthDate value. Age for registration cannot be less than 10 years"];
+        }
 
         if ($validationErrors) {
             $messageResult = array(
