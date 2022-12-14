@@ -139,7 +139,7 @@ function route($method, $urlList, $requestData)
                 if (!isValidChangeProfile($fullName, $gender, $phoneNumber, $requestData->body->birthDate)) {
                     return;
                 }
-                $userUpdateResult = $link->query("UPDATE user SET full_name='$fullName', birth_date='$birthDate', gender='$gender', address='$address' WHERE user_id='$userID'");
+                $userUpdateResult = $link->query("UPDATE user SET full_name='$fullName', birth_date='$birthDate', gender='$gender', address='$address', telephone_number='$phoneNumber' WHERE user_id='$userID'");
                 if (!$userUpdateResult) {
                     if (checkEmailDuplicates($emailFromToken)) {
                         return;

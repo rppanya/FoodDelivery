@@ -30,11 +30,11 @@ function isValidRegistration($fullName, $password, $email, $gender, $phoneNumber
     if ($gender == "") {
         $validationErrors[] = ["Gender" => "The Gender field is required"];
     }
-    if ($gender != "Male" && $gender != "Female") {
+    if ($gender != "Male" && $gender != "Female" && $gender != "") {
         $validationErrors[] = ["Gender" => "Invalid gender value"];
     }
     if (!ctype_digit($phoneNumber)) {
-        $validationErrors[] = ["PhoneNumber" => "The PhoneNumber field is not a valid phone number"];
+        $validationErrors[] = ["PhoneNumber" => "The PhoneNumber field is not a valid phone number. The PhoneNumber field can only contain digits"];
     }
     if (validateDate($birthDate) != "") {
         $validationErrors[] = ["BirthDate" => validateDate($birthDate)];
@@ -57,7 +57,7 @@ function validateDate($date): string
     $minAge = 3600 * 24 * 365 * 10; //10 years
     if (!checkDateTime($date)) {
         return "Invalid birthDate value";
-    } else if (time() - checkDateTime(date) < $minAge) {
+    } else if (time() - checkDateTime($date) < $minAge) {
         return "Invalid birthDate value. Age for registration cannot be less than 10 years";
     } else {
         return "";
@@ -100,11 +100,11 @@ function isValidChangeProfile($fullName, $gender, $phoneNumber, $birthDate): boo
     if ($gender == "") {
         $validationErrors[] = ["Gender" => "The Gender field is required"];
     }
-    if ($gender != "Male" && $gender != "Female") {
+    if ($gender != "Male" && $gender != "Female" && $gender != "") {
         $validationErrors[] = ["Gender" => "Invalid gender value"];
     }
     if (!ctype_digit($phoneNumber)) {
-        $validationErrors[] = ["PhoneNumber" => "The PhoneNumber field is not a valid phone number"];
+        $validationErrors[] = ["PhoneNumber" => "The PhoneNumber field is not a valid phone number.The PhoneNumber field can only contain digits"];
     }
     if (validateDate($birthDate) != "") {
         $validationErrors[] = ["BirthDate" => validateDate($birthDate)];

@@ -22,7 +22,7 @@ function route($method, $urlList, $requestData)
                 return;
             }
 
-            $pageInfo = ['size' => 6];
+            $pageInfo = ['size' => 5];
             $pageNumber = $get['page'];
             if ($pageNumber == '') {
                 $pageNumber = 1;
@@ -40,7 +40,7 @@ function route($method, $urlList, $requestData)
             }
             $categories = '\'' . implode('\', \'', $categoriesList) . '\'';
 
-            if ($get['vegetarian'] == '' || $get['vegetarian'] == 0) {
+            if ($get['vegetarian'] === '' || $get['vegetarian'] === 0 || $get['vegetarian'] === 'false') {
                 $vegetarian = '1, 0';
             } else {
                 $vegetarian = 1;

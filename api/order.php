@@ -97,15 +97,27 @@ function route($method, $urlList, $requestData)
                         setHTTPStatus('401', 'Token not specified or not valid');
                         return;
                     }
+                    $validationErrors = [];
                     $deliveryTime = $requestData->body->deliveryTime;
-                    if (!checkDateTime($deliveryTime)) {
-                        setHTTPStatus('400', 'Invalid deliveryTime value');
-                        return;
+                    if (!$deliveryTime) {
+                        $validationErrors[] = ["DeliveryTime" => "The deliveryTime field is required"];
+                    } else if (!checkDateTime($deliveryTime)) {
+                        $validationErrors[] = ["DeliveryTime" => 'Invalid deliveryTime value'];
                     } else if (checkDateTime($deliveryTime) - 3600 < time()) {
-                        setHTTPStatus('400', 'Invalid delivery time. Delivery time must be more than current datetime on 60 minutes');
-                        return;
+                        $validationErrors[] = ["DeliveryTime" => 'Invalid delivery time. Delivery time must be more than current datetime on 60 minutes'];
                     }
                     $address = $requestData->body->address;
+                    if (!$address) {
+                        $validationErrors[] = ["Address" => 'The address field is required'];
+                    }
+                    if ($validationErrors) {
+                        $messageResult = array(
+                            'message' => 'User Registration Failed',
+                            'errors' => $validationErrors
+                        );
+                        setHTTPStatus('400', $messageResult);
+                        return;
+                    }
                     $orderTime = date(DATE_ATOM);
                     $dishesFromBasket = $link->query("SELECT dish.price, dish_basket.amount FROM dish_basket
                                                                 JOIN dish ON dish_basket.dish_id = dish.dish_id AND dish_basket.order_id is null AND dish_basket.user_id = '$userID'");

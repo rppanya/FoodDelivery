@@ -3,23 +3,24 @@ function validateGetParam($get)
 {
     $validationErrors = [];
     if ($get['vegetarian'] != '') {
-        if ($get['vegetarian'] != '1' || $get['vegetarian'] != '0'
-            || $get['vegetarian'] != 'true' || $get['vegetarian'] != 'false') {
+        $vegetarianList = ['1', '0', 'true', 'false'];
+        $inVegetarianList = in_array($get['vegetarian'], $vegetarianList);
+        if (!$inVegetarianList) {
             $validationErrors[] = ["vegetarian" => "Invalid value for attribute vegetarian"];
         }
     }
     if ($get['sorting']) {
+        $sortingList = ['nameasc', 'namedesc', 'priceasc', 'pricedesc', 'ratingasc', 'ratingdesc'];
         $sorting = mb_strtolower($get['sorting']);
-        if ($sorting != 'nameasc' || $sorting != 'namedesc'
-            || $sorting != 'priceasc' || $sorting != 'pricedesc'
-            || $sorting != 'ratingasc' || $sorting != 'ratingdesc') {
+        $inSortingList = in_array($sorting, $sortingList);
+        if (!$inSortingList) {
             $validationErrors[] = ["sorting" => "Invalid value for attribute sorting"];
         }
     }
     if ($get['categories']) {
         $categoriesList = ['Wok', 'Pizza', 'Soup', 'Dessert', 'Drink'];
         foreach ($get['categories'] as $category) {
-            $currentCategory = array_search($category, $categoriesList);
+            $currentCategory = in_array($category, $categoriesList);
             if (!$currentCategory) {
                 $validationErrors[] = ["categories" => "Invalid value for attribute categories"];
                 break;
