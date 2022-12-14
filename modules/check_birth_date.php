@@ -1,15 +1,12 @@
 <?php
-    function checkBirthdate($date): bool
+    function checkDateTime($date)
     {
-        global $link;
-        $messageResult = array(
-            'message' => 'User Registration Failed',
-            'error' => []
-        );
-        if ($link->warnin == 1265) {
-            $messageResult['error'] = "Incorrect datetime value: '$date'";
-            setHTTPStatus('400', $messageResult);
-            return true;
+        $date = str_replace('T', ' ', $date);
+        $date = mb_substr($date, 0, strlen($date)-5);
+        $d = DateTime::createFromFormat('Y-m-d H:i:s', $date);
+        if ($d === false) {
+            return false;
+        } else {
+            return $d->getTimestamp();
         }
-        return false;
     }
