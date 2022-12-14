@@ -88,7 +88,7 @@ function validateContainsSpecialSymbolsExceptDash($str): bool
     return false;
 }
 
-function isValidChangeProfile($fullName, $gender, $phoneNumber, $birthDate)
+function isValidChangeProfile($fullName, $gender, $phoneNumber, $birthDate): bool
 {
     $validationErrors = [];
     if ($fullName == "") {
