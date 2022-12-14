@@ -54,11 +54,20 @@
                 }
 
                 $listDishes = $link->query("SELECT * FROM dish WHERE (category IN ($categories) AND vegetarian IN ($vegetarian)) ORDER BY $sorting LIMIT $pageSize OFFSET $from");
+                if ($link->error) {
+                    setHTTPStatus('500', $link->error);
+                    break;
+                }
                 foreach ($listDishes as $dish) {
                     $result['dishes'][] = $dish;
                 }
 
-                $countPages = $link->query("SELECT COUNT(*) AS countPages FROM dish WHERE (category IN ($categories) AND vegetarian IN ($vegetarian))")->fetch_assoc();
+                $countPages = $link->query("SELECT COUNT(*) AS countPages FROM dish WHERE (category IN ($categories) AND vegetarian IN ($vegetarian))");
+                if ($link->error) {
+                    setHTTPStatus('500', $link->error);
+                    break;
+                }
+                $countPages = $countPages->fetch_assoc();
                 $pageInfo['count'] = ceil($countPages['countPages'] / $pageSize);
                 $pageInfo['current'] = $pageNumber;
                 $result['pagination'] = $pageInfo;
@@ -78,13 +87,27 @@
                     setHTTPStatus('405',"Method '$method' not allowed");
                     return;
                 }
-                $checkDish = $link->query("SELECT dish_id FROM dish WHERE dish_id='$urlList[2]'")->fetch_assoc();
+                $checkDish = $link->query("SELECT dish_id FROM dish WHERE dish_id='$urlList[2]'");
+                if ($link->error) {
+                    setHTTPStatus('500', $link->error);
+                    break;
+                }
+                $checkDish = $checkDish->fetch_assoc();
                 if (!$checkDish) {
                     setHTTPStatus('404', "Dish with id = '$urlList[2]' not found");
                     return;
                 }
-                $dishInfo = $link->query("SELECT * FROM dish WHERE dish_id='$urlList[2]'")->fetch_assoc();
+                $dishInfo = $link->query("SELECT * FROM dish WHERE dish_id='$urlList[2]'");
+                if ($link->error) {
+                    setHTTPStatus('500', $link->error);
+                    break;
+                }
+                $dishInfo = $dishInfo->fetch_assoc();
                 $dishRating = $link->query("SELECT * FROM dish_rating WHERE dish_id='$urlList[2]'");
+                if ($link->error) {
+                    setHTTPStatus('500', $link->error);
+                    break;
+                }
                 $sumRating = 0;
                 $countRating = 0;
                 foreach ($dishRating as $rating) {
@@ -104,7 +127,7 @@
                 echo json_encode($result);
                 break;
             case 5:
-                if ($method != "GET") {
+                if ($method != "GET" && $urlList[3] == "rating" && $urlList[4] == "check") {
                     setHTTPStatus('405',"Method '$method' not allowed");
                     return;
                 }
@@ -117,12 +140,22 @@
                     setHTTPStatus('401','Token not specified or not valid');
                     return;
                 }
-                $checkDish = $link->query("SELECT dish_id FROM dish WHERE dish_id='$urlList[2]'")->fetch_assoc();
+                $checkDish = $link->query("SELECT dish_id FROM dish WHERE dish_id='$urlList[2]'");
+                if ($link->error) {
+                    setHTTPStatus('500', $link->error);
+                    break;
+                }
+                $checkDish = $checkDish->fetch_assoc();
                 if (!$checkDish) {
                     setHTTPStatus('404', "Dish with id = '$urlList[2]' not found");
                     return;
                 }
-                $dishRatingCheck = $link->query("SELECT * FROM dish_rating WHERE dish_id = '$urlList[2]' AND user_id='$userID'")->fetch_assoc();
+                $dishRatingCheck = $link->query("SELECT * FROM dish_rating WHERE dish_id = '$urlList[2]' AND user_id='$userID'");
+                if ($link->error) {
+                    setHTTPStatus('500', $link->error);
+                    break;
+                }
+                $dishRatingCheck = $dishRatingCheck->fetch_assoc();
                 if ($dishRatingCheck){
                     echo "true";
                 } else {
@@ -130,7 +163,7 @@
                 }
                 break;
             case 4:
-                if ($method != "POST") {
+                if ($method != "POST" && $urlList[3]=="rating") {
                     setHTTPStatus('405',"Method '$method' not allowed");
                     return;
                 }
@@ -151,7 +184,7 @@
                 $checkOrder = $link->query("SELECT order_id FROM dish_basket WHERE user_id='$userID' 
                                                   AND dish_id='$urlList[2]' AND order_id is not null")->fetch_assoc();
                 if (!$checkOrder) {
-                    setHTTPStatus('403', "The dish was not ordered");
+                    setHTTPStatus('403', "User can't set rating on dish that wasn't ordered");
                     return;
                 }
                 $ratingScore = $_GET['ratingScore'];

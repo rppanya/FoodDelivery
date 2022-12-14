@@ -16,17 +16,22 @@
                             $password = $requestData->body->password;
                             $email = $requestData->body->email;
                             $address = $requestData->body->address;
-                            $birthDate = str_replace(["T", "Z"], " ", trim($requestData->body->birthDate));
                             $gender = $requestData->body->gender;
                             $phoneNumber = $requestData->body->phoneNumber;
-                            if (!isValidRegistration($fullName, $password, $email, $gender, $phoneNumber)) {
+                            $birthDate = str_replace(["T", "Z"], " ", trim($requestData->body->birthDate));
+
+                            if (!isValidRegistration($fullName, $password, $email, $gender, $phoneNumber, $requestData->body->birthDate)) {
                                 return;
                             }
                             $password = hash("sha1", $requestData->body->password);
                             $userInsertResult = $link->query("INSERT INTO user(user_id,  full_name, birth_date, gender, telephone_number, email, address, password)
                                                                 VALUES(UUID(), '$fullName', '$birthDate', '$gender', '$phoneNumber', '$email', '$address', '$password')");
+                            if ($link->error) {
+                                setHTTPStatus('500', $link->error);
+                                break;
+                            }
                             if (!$userInsertResult) {
-                                if (checkEmailDuplicates($email) || checkBirthdate($birthDate)) {
+                                if (checkEmailDuplicates($email)) {
                                     return;
                                 }
                             }
@@ -37,7 +42,12 @@
                         case "login":
                             $email = $requestData->body->email;
                             $password = hash("sha1", $requestData->body->password);
-                            $user = $link->query("SELECT email FROM user WHERE email='$email' AND password='$password'")->fetch_assoc();
+                            $user = $link->query("SELECT email FROM user WHERE email='$email' AND password='$password'");
+                            if ($link->error) {
+                                setHTTPStatus('500', $link->error);
+                                break;
+                            }
+                            $user = $user->fetch_assoc();
                             if ($user) {
                                 echo json_encode(['token' => generateToken($user['email'])]);
                             }
@@ -52,12 +62,21 @@
                                 return;
                             }
                             $token = substr(getallheaders()['Authorization'], 7);
-                            $checkToken = $link->query("SELECT token_id FROM token WHERE token='$token'")->fetch_assoc();
+                            $checkToken = $link->query("SELECT token_id FROM token WHERE token='$token'");
+                            if ($link->error) {
+                                setHTTPStatus('500', $link->error);
+                                break;
+                            }
+                            $checkToken = $checkToken->fetch_assoc();
                             if ($checkToken) {
                                 setHTTPStatus('409', "From this '$token' token has already logged out");
                                 return;
                             }
                             $tokenInsertResult = $link->query("INSERT INTO token(token_id, user_id, token) VALUES(UUID(),'$userID', '$token')");
+                            if ($link->error) {
+                                setHTTPStatus('500', $link->error);
+                                break;
+                            }
                             if ($tokenInsertResult) {
                                 $messageResult = array('token' => $token, 'message' => 'Logged Out');
                                 setHTTPStatus('200', $messageResult);
@@ -74,13 +93,23 @@
                         break;
                     }
                     $token = substr(getallheaders()['Authorization'], 7);
-                    $isLogoutToken = $link->query("SELECT token_id FROM token WHERE token.`token`='$token'")->fetch_assoc();
+                    $isLogoutToken = $link->query("SELECT token_id FROM token WHERE token.`token`='$token'");
+                    if ($link->error) {
+                        setHTTPStatus('500', $link->error);
+                        break;
+                    }
+                    $isLogoutToken = $isLogoutToken->fetch_assoc();
                     $userID = checkAuthorize();
                     if (!$userID || $isLogoutToken) {
                         setHTTPStatus('401','Token not specified or not valid');
                         return;
                     }
-                    $user = $link->query("SELECT * FROM user WHERE user_id='$userID'")->fetch_assoc();
+                    $user = $link->query("SELECT * FROM user WHERE user_id='$userID'");
+                    if ($link->error) {
+                        setHTTPStatus('500', $link->error);
+                        break;
+                    }
+                    $user = $user->fetch_assoc();
                     $result = array(
                         'id' => $user['user_id'],
                         'fullName' => $user['full_name'],
@@ -100,7 +129,12 @@
                     }
                     $token = substr(getallheaders()['Authorization'], 7);
                     $emailFromToken = getPayload($token)['email'];
-                    $isLogoutToken = $link->query("SELECT token_id FROM token WHERE token.`token`='$token'")->fetch_assoc();
+                    $isLogoutToken = $link->query("SELECT token_id FROM token WHERE token.`token`='$token'");
+                    if ($link->error) {
+                        setHTTPStatus('500', $link->error);
+                        break;
+                    }
+                    $isLogoutToken = $isLogoutToken->fetch_assoc();
                     $userID = checkAuthorize();
                     if (!$userID || $isLogoutToken) {
                         setHTTPStatus('401','Token not specified or not valid');
@@ -115,6 +149,10 @@
                         return;
                     }
                     $userUpdateResult = $link->query("UPDATE user SET full_name='$fullName', birth_date='$birthDate', gender='$gender', address='$address' WHERE user_id='$userID'");
+                    if ($link->error) {
+                        setHTTPStatus('500', $link->error);
+                        break;
+                    }
                     if (!$userUpdateResult) {
                         if (checkEmailDuplicates($emailFromToken) || checkBirthdate($birthDate)) {
                             return;
